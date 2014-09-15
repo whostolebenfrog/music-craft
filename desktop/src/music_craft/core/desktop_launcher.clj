@@ -8,3 +8,5 @@
   []
   (LwjglApplication. music-craft "music-craft" 800 600)
   (Keyboard/enableRepeatEvents true))
+
+(comment (-main))
