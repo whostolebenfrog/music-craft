@@ -12,10 +12,10 @@
     (update! screen
              :renderer (model-batch)
              :attributes (let [attr-type (attribute-type :color :ambient-light)
-                               attr (attribute :color attr-type 0.8 0.8 0.8 1)]
+                               attr (attribute :color attr-type 0.4 0.4 0.4 1)]
                            (environment :set attr))
-             :camera (doto (perspective 75 (game :width) (game :height))
-                       (position! 0 0 3)
+             :camera (doto (perspective 67 (game :width) (game :height))
+                       (position! 5 5 5)
                        (direction! 0 0 0)
                        (near! 0.1)
                        (far! 300)))
