@@ -11,6 +11,7 @@
                   :classifier "natives-desktop"]
                  [com.badlogicgames.gdx/gdx-platform "1.3.1"
                   :classifier "natives-desktop"]
+                 [net.mikera/clisk "0.10.0"]
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/math.combinatorics "0.0.8"]
                  [play-clj "0.3.11"]]
