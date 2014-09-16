@@ -18,9 +18,16 @@
 ;; required for the refresh function
 (declare music-craft main-screen)
 
+;; constants
 (def b-size "block size" 2)
+(def grid-size 20)
 
 ;; textures
+(defn raw-texture
+  "Creates a libgdx texture from the supplied resourece path"
+  [path]
+  (-> path io/resource .toURI java.io.File. FileHandle. Texture.))
+
 (def grass-texture (delay (raw-texture "grass.jpg")))
 (def stone-texture (delay (raw-texture "stone.jpg")))
 (def sand-texture  (delay (raw-texture "sand.jpg")))
@@ -30,11 +37,6 @@
   "Returns a new directional light, doesn't seem to exist in play-clj"
   []
   (doto (DirectionalLight.) (.set 0.8 0.8 0.8 -1 -0.8 -0.2)))
-
-(defn raw-texture
-  "Creates a libgdx texture from the supplied resourece path"
-  [path]
-  (-> path io/resource .toURI java.io.File. FileHandle. Texture.))
 
 (defn random-texture
   "Returns a random texture"
@@ -55,9 +57,16 @@
 (defn blocks
   "Creats a 1 deep plane of blocks from +20 to -20 on the x and z axis"
   []
-  (vec (for [x (range -20 20 2)
-             z (range -20 20 2)]
+  (vec (for [x (range (- grid-size) grid-size 2)
+             z (range (- grid-size) grid-size 2)]
          (block x 0 z))))
+
+(defn translate-camera
+  "Translate the camera on the x, y and z axis"
+  [screen x y z]
+  (doto screen
+    (perspective! :translate x y z)
+    (perspective! :update)))
 
 (defscreen main-screen
   :on-show
@@ -81,34 +90,22 @@
   (fn [{:keys [key] :as screen} entities]
     (condp = key
        (key-code :w)
-       (doto screen
-         (perspective! :translate 0 0 -1)
-         (perspective! :update))
+       (translate-camera screen 0 0 -1)
 
        (key-code :s)
-       (doto screen
-         (perspective! :translate 0 0 1)
-         (perspective! :update))
+       (translate-camera screen 0 0 1)
 
        (key-code :a)
-       (doto screen
-         (perspective! :translate -1 0 0)
-         (perspective! :update))
+       (translate-camera screen -1 0 0)
 
        (key-code :d)
-       (doto screen
-         (perspective! :translate 1 0 0)
-         (perspective! :update))
+       (translate-camera screen 1 0 0)
 
        (key-code :j)
-       (doto screen
-         (perspective! :translate 0 -1 0)
-         (perspective! :update))
+       (translate-camera screen 0 -1 0)
 
        (key-code :k)
-       (doto screen
-         (perspective! :translate 0 1 0)
-         (perspective! :update))
+       (translate-camera screen 0 1 0)
 
        (key-code :r)
        (on-gl (set-screen! music-craft main-screen))
