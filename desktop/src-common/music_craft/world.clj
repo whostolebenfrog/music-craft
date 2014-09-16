@@ -30,7 +30,7 @@
 
 ;; constants
 (def b-size "block size" 1)
-(def grid-size 50)
+(def grid-size 30)
 
 ;; textures
 (defn raw-texture
@@ -62,9 +62,9 @@
 (defn blocks
   "Create the block entities"
   []
-  (let [seed 1337
+  (let [seed 123234
         min 1
-        max 10
+        max 15
         noise (noise-for-grid grid-size grid-size min max seed)]
     (vec (for [x (range grid-size)
                z (range grid-size)
