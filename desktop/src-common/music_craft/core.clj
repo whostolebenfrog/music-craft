@@ -1,25 +1,63 @@
 (ns music-craft.core
-  (:require [play-clj
+  (:require [clojure.java.io :as io]
+            [clojure.math.combinatorics :as combo]
+            [play-clj
              [core :refer :all]
              [ui :refer :all]
+             [g2d :as g2d]
              [g3d :refer :all]
              [math :refer :all]
              [repl :refer :all]
              [utils :as u]])
   (:import [com.badlogic.gdx.graphics.g3d.environment DirectionalLight]
-           [com.badlogic.gdx.input RemoteInput]))
+           [com.badlogic.gdx.input RemoteInput]
+           [com.badlogic.gdx.graphics.g3d.attributes TextureAttribute]
+           [com.badlogic.gdx.graphics Texture]
+           [com.badlogic.gdx.files FileHandle]))
 
+;; required for the refresh function
 (declare music-craft main-screen)
 
-(def remote-input (RemoteInput.))
-(doto remote-input (.setCursorCatched true))
-(doto remote-input (.setCursorPosition 0 0))
+(def b-size "block size" 2)
+
+;; textures
+(def grass-texture (delay (raw-texture "grass.jpg")))
+(def stone-texture (delay (raw-texture "stone.jpg")))
+(def sand-texture  (delay (raw-texture "sand.jpg")))
+(def water-texture (delay (raw-texture "water.jpg")))
 
 (defn directional-light
   "Returns a new directional light, doesn't seem to exist in play-clj"
   []
-  (doto (DirectionalLight.)
-    (.set 0.8 0.8 0.8 -1 -0.8 -0.2)))
+  (doto (DirectionalLight.) (.set 0.8 0.8 0.8 -1 -0.8 -0.2)))
+
+(defn raw-texture
+  "Creates a libgdx texture from the supplied resourece path"
+  [path]
+  (-> path io/resource .toURI java.io.File. FileHandle. Texture.))
+
+(defn random-texture
+  "Returns a random texture"
+  []
+  (rand-nth [grass-texture stone-texture sand-texture water-texture]))
+
+(defn block
+  "Creates a block at pos x, y, z with a random texture"
+  [x y z]
+  (let [texture-attr (TextureAttribute. TextureAttribute/Diffuse @(random-texture))
+        model-mat (material :set texture-attr)
+        model-attrs (bit-or (usage :position) (usage :normal) (usage :texture-coordinates))
+        builder (model-builder)]
+    (-> (model-builder! builder :create-box b-size b-size b-size model-mat model-attrs)
+        model
+        (assoc :x x :y y :z z))))
+
+(defn blocks
+  "Creats a 1 deep plane of blocks from +20 to -20 on the x and z axis"
+  []
+  (vec (for [x (range -20 20 2)
+             z (range -20 20 2)]
+         (block x 0 z))))
 
 (defscreen main-screen
   :on-show
@@ -30,18 +68,15 @@
                                ambient-attr (attribute :color ambient-attr-type 0.4 0.4 0.4 1)]
                            (environment :set ambient-attr :add (directional-light)))
              :camera (doto (perspective 67 (game :width) (game :height))
-                       (position! 0 0 20)
-                       (direction! 0 0 0)
+                       (position! 0 40 40)
+                       (direction! 0 1 0)
                        (near! 0.1)
                        (far! 300)))
-    (let [attr (attribute! :color :create-diffuse (color :green))
-          model-mat (material :set attr)
-          model-attrs (bit-or (usage :position) (usage :normal))
-          builder (model-builder)]
-      (-> (model-builder! builder :create-box 2 2 2 model-mat model-attrs)
-          model
-          (assoc :x 0 :y 0 :z 0))))
+    (blocks))
 
+  ;; Here we are handling some basic movement commands, ideally we would be using the mouse
+  ;; here but currently I'm struggling to see how to add mouse cursor locking into
+  ;; play-clj. I'll get back to this.
   :on-key-down
   (fn [{:keys [key] :as screen} entities]
     (condp = key
@@ -55,16 +90,30 @@
          (perspective! :translate 0 0 1)
          (perspective! :update))
 
-       (key-code "r")
+       (key-code :a)
+       (doto screen
+         (perspective! :translate -1 0 0)
+         (perspective! :update))
+
+       (key-code :d)
+       (doto screen
+         (perspective! :translate 1 0 0)
+         (perspective! :update))
+
+       (key-code :j)
+       (doto screen
+         (perspective! :translate 0 -1 0)
+         (perspective! :update))
+
+       (key-code :k)
+       (doto screen
+         (perspective! :translate 0 1 0)
+         (perspective! :update))
+
+       (key-code :r)
        (on-gl (set-screen! music-craft main-screen))
 
        nil)
-    entities)
-
-  :on-mouse-moved
-  (fn [screen entities]
-    (prn (u/get-obj screen :input-listeners))
-    (prn (input->screen screen (input! :get-x) (input! :get-y)))
     entities)
 
   :on-render
