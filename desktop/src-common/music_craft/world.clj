@@ -30,7 +30,7 @@
 
 ;; constants
 (def b-size "block size" 1)
-(def grid-size 30)
+(def grid-size 40)
 
 ;; textures
 (defn raw-texture
@@ -38,24 +38,28 @@
   [path]
   (-> path io/resource .toURI java.io.File. FileHandle. Texture.))
 
-(def grass-texture (delay (raw-texture "grass.jpg")))
-(def stone-texture (delay (raw-texture "stone.jpg")))
-(def sand-texture  (delay (raw-texture "sand.jpg")))
-(def water-texture (delay (raw-texture "water.jpg")))
+(defn load-material
+  "Creates a new material from a texture"
+  [path]
+  (material :set (TextureAttribute. TextureAttribute/Diffuse (raw-texture path))))
 
-(defn random-texture
+(def grass-material (delay (load-material "grass.jpg")))
+(def stone-material (delay (load-material "stone.jpg")))
+(def sand-material  (delay (load-material "sand.jpg")))
+(def water-material (delay (load-material "water.jpg")))
+
+(defn random-material
   "Returns a random texture"
   []
-  (rand-nth [grass-texture sand-texture sand-texture sand-texture water-texture]))
+  (rand-nth [grass-material sand-material sand-material sand-material water-material]))
+
+(def builder (model-builder))
 
 (defn block
   "Creates a block at pos x, y, z with a random texture"
   [x y z]
-  (let [texture-attr (TextureAttribute. TextureAttribute/Diffuse @(random-texture))
-        model-mat (material :set texture-attr)
-        model-attrs (bit-or (usage :position) (usage :normal) (usage :texture-coordinates))
-        builder (model-builder)]
-    (-> (model-builder! builder :create-box b-size b-size b-size model-mat model-attrs)
+  (let [model-attrs (bit-or (usage :position) (usage :normal) (usage :texture-coordinates))]
+    (-> (model-builder! builder :create-box b-size b-size b-size @(random-material) model-attrs)
         model
         (assoc :x x :y y :z z))))
 
@@ -64,7 +68,7 @@
   []
   (let [seed 123234
         min 1
-        max 15
+        max 8
         noise (noise-for-grid grid-size grid-size min max seed)]
     (vec (for [x (range grid-size)
                z (range grid-size)

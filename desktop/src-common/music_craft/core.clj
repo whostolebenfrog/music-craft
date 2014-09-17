@@ -10,10 +10,14 @@
              [repl :refer :all]
              [utils :as u]])
   (:import [com.badlogic.gdx.graphics.g3d.environment DirectionalLight]
-           [com.badlogic.gdx.graphics.g3d.utils FirstPersonCameraController]))
+           [com.badlogic.gdx.graphics GL20]
+           [com.badlogic.gdx.graphics.g3d.utils FirstPersonCameraController]
+           [com.badlogic.gdx.math Vector3]))
 
 ;; required for the refresh function
-(declare music-craft main-screen)
+(declare music-craft main-screen text-screen)
+(def visible-objects (atom 0))
+(def degress-per-pixel 0.5)
 
 (defn directional-light
   "Returns a new directional light, doesn't seem to exist in play-clj"
@@ -27,8 +31,6 @@
     (perspective! :translate x y z)
     (perspective! :update)))
 
-(def last-mouse-pos (atom [nil nil]))
-
 (defn rotate-camera
   "Rotate the camera around the various axis"
   [x y screen]
@@ -38,24 +40,15 @@
     (perspective! :update)))
 
 (defn handle-mouse-move
-  ""
   [screen]
-  (let [[last-x last-y] @last-mouse-pos
-        x (game :point-x)
-        y (game :point-y)]
-    (when-not (nil? last-x)
-      (rotate-camera (- last-x x) (- last-y y) screen))
-    (reset! last-mouse-pos [x y])))
-
-(def fp-camera-controller (atom nil))
-
-;; http://stackoverflow.com/questions/21825959/libgdx-first-person-camera-controll
-;; https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/graphics/g3d/utils/FirstPersonCameraController.java
-(defn update-camera
-  [screen]
-  (when-not @fp-camera-controller
-    (reset! fp-camera-controller (FirstPersonCameraController. (u/get-obj screen :camera))))
-  (.update @fp-camera-controller))
+  (let [camera (u/get-obj screen :camera)
+        delta-x (* (input! :get-delta-x) degress-per-pixel)
+        delta-y (* (input! :get-delta-y) degress-per-pixel)
+        vec-y (doto (Vector3.) (.set (.direction camera)) (.crs Vector3/Y))]
+    (doto screen
+      (perspective! :rotate Vector3/Y delta-x)
+      (perspective! :rotate vec-y delta-y)
+      (perspective! :update))))
 
 (defscreen main-screen
   :on-show
@@ -70,50 +63,81 @@
                        (direction! 0 0 0)
                        (near! 0.1)
                        (far! 100)))
+    (let [gl2 (graphics! :get-g-l20)]
+      (-> gl2 (.glEnable GL20/GL_CULL_FACE))
+      (-> gl2 (.glCullFace GL20/GL_BACK)))
+    (graphics! :set-continuous-rendering false)
+    (input! :set-cursor-catched true)
     (world/blocks))
+
+  :on-mouse-moved
+  (fn [screen entities]
+    (when (input! :is-cursor-catched)
+     (handle-mouse-move screen))
+    entities)
+
+  :on-key-down
+  (fn [{:keys [key] :as screen} entities]
+    (condp = key
+      (key-code :w)
+      (do
+        (perspective! screen :translate (.direction (u/get-obj screen :camera)))
+        (perspective! screen :update))
+
+      (key-code :s)
+      (translate-camera screen 0 0 1)
+
+      (key-code :a)
+      (translate-camera screen -1 0 0)
+
+      (key-code :d)
+      (translate-camera screen 1 0 0)
+
+      (key-code :j)
+      (translate-camera screen 0 -1 0)
+
+      (key-code :t)
+      (input! :set-cursor-catched (not (input! :is-cursor-catched)))
+
+      (key-code :k)
+      (translate-camera screen 0 1 0)
+
+      (key-code :r)
+      (on-gl (set-screen! music-craft main-screen text-screen))
+
+      nil)
+    entities)
 
   :on-render
   (fn [screen entities]
     (clear! 0.1 0 0.3 1)
-    (update-camera screen)
-    (render! screen entities)))
+    (let [frus (.frustum (u/get-obj screen :camera))
+          visible-entities (filter (fn [{:keys [x y z]}] (.pointInFrustum frus x y z)) entities)]
+      (reset! visible-objects (count visible-entities))
+      (render! screen visible-entities))
+    entities))
 
-(comment  :on-mouse-moved
-          (fn [screen entities]
-            (handle-mouse-move screen)
-            entities))
-  (comment
-   ;; Here we are handling some basic movement commands, ideally we would be using the mouse
-   ;; here but currently I'm struggling to see how to add mouse cursor locking into
-   ;; play-clj. I'll get back to this.
-    :on-key-down
-    (fn [{:keys [key] :as screen} entities]
-      (condp = key
-        (key-code :w)
-        (translate-camera screen 0 0 -1)
+(defscreen text-screen
+  :on-show
+  (fn [screen entities]
+    (update! screen :camera (orthographic) :renderer (stage))
+    (assoc (label "0" (color :black))
+           :id :fps
+           :x 5))
 
-        (key-code :s)
-        (translate-camera screen 0 0 1)
+  :on-render
+  (fn [screen entities]
+    (->> (for [entity entities]
+           (case (:id entity)
+             :fps (doto entity (label! :set-text (str (game :fps) " - " @visible-objects)))
+             entity))
+         (render! screen)))
 
-        (key-code :a)
-        (translate-camera screen -1 0 0)
-
-        (key-code :d)
-        (translate-camera screen 1 0 0)
-
-        (key-code :j)
-        (translate-camera screen 0 -1 0)
-
-        (key-code :k)
-        (translate-camera screen 0 1 0)
-
-        (key-code :r)
-        (on-gl (set-screen! music-craft main-screen))
-
-        nil)
-      entities))
+  :on-resize
+  (fn [screen entities]
+    (height! screen 300)))
 
 (defgame music-craft
   :on-create
   (fn [this]
-    (set-screen! this main-screen)))
+    (set-screen! this main-screen text-screen)))
