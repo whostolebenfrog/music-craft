@@ -1,0 +1,16 @@
+{
+  "time_signature": 3,
+  "tempo": 76.188,
+  "energy": 0.15915670588982397,
+  "liveness": 0.10716152528179064,
+  "analysis_url": "http://echonest-analysis.s3.amazonaws.com/TR/TRGCEWR148890018E9/3/full.json?AWSAccessKeyId=AKIAJRDFEY23UEVW42BQ&Expires=1411048485&Signature=ps8akOz%2B%2BmZONNoE13v15PrdbSc%3D",
+  "speechiness": 0.037824157769988154,
+  "mode": 1,
+  "acousticness": 0.9843796474385387,
+  "danceability": 0.36117781969906854,
+  "key": 1,
+  "duration": 176.10667,
+  "loudness": -24.918,
+  "valence": 0.07223849774969786,
+  "instrumentalness": 0.9509379607662533
+}

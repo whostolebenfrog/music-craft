@@ -14,6 +14,7 @@
                  [net.mikera/clisk "0.10.0"]
                  [org.clojure/clojure "1.6.0"]
                  [org.clojure/math.combinatorics "0.0.8"]
+                 [pjson "0.2.2"]
                  [play-clj "0.3.11"]]
 
   :source-paths ["src" "src-common"]

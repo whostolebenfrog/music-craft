@@ -43,34 +43,59 @@
   [path]
   (material :set (TextureAttribute. TextureAttribute/Diffuse (raw-texture path))))
 
-(def grass-material (delay (load-material "grass.jpg")))
-(def stone-material (delay (load-material "stone.jpg")))
-(def sand-material  (delay (load-material "sand.jpg")))
-(def water-material (delay (load-material "water.jpg")))
+(def grass-material  (delay (load-material "grass2.jpg")))
+(def stone-material  (delay (load-material "stone.jpg")))
+(def stone2-material (delay (load-material "stone2.jpg")))
+(def sand-material   (delay (load-material "sand.jpg")))
+(def water-material  (delay (load-material "water.jpg")))
+(def fire-material   (delay (load-material "fire.jpg")))
+
+(def random
+  "Our random number generator"
+  (java.util.Random.))
+
+(defn weighted-gaussian-random
+  "Returns a weighted normally distributed random number between 0 and 1"
+  [weight]
+  (min (* weight (Math/abs (.nextGaussian random))) 1))
+
+(defn nearest-material
+  "Find the nearest material to the supplied number"
+  [n mats]
+  (apply min-key (fn [{:keys [energy]}] (Math/abs (- n energy))) mats))
+
 
 (defn random-material
   "Returns a random texture"
-  []
-  (rand-nth [grass-material sand-material sand-material sand-material water-material]))
+  [energy]
+  (let [energy-mats [{:mat grass-material :energy 0.2}
+                     {:mat stone-material :energy 0.6}
+                     {:mat sand-material  :energy 0}
+                     {:mat water-material :energy 0.3}
+                     {:mat stone2-material :energy 0.8}
+                     {:mat fire-material :energy 1}]]
+
+    (:mat (nearest-material (weighted-gaussian-random energy) energy-mats))))
 
 (def builder (model-builder))
 
 (defn block
   "Creates a block at pos x, y, z with a random texture"
-  [x y z]
+  [x y z energy]
   (let [model-attrs (bit-or (usage :position) (usage :normal) (usage :texture-coordinates))]
-    (-> (model-builder! builder :create-box b-size b-size b-size @(random-material) model-attrs)
+    (-> (model-builder! builder :create-box b-size b-size b-size @(random-material energy) model-attrs)
         model
         (assoc :x x :y y :z z))))
 
 (defn blocks
   "Create the block entities"
-  []
-  (let [seed 123234
+  [info]
+  (let [energy (info "energy")
+        seed (info "danceability")
         min 1
-        max 8
+        max (Math/round (* energy 15))
         noise (noise-for-grid grid-size grid-size min max seed)]
     (vec (for [x (range grid-size)
                z (range grid-size)
-               y (range min (aget noise x z))]
-           (block x y z)))))
+               y (range 0 (aget noise x z))]
+           (block x y z energy)))))
