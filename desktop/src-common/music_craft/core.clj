@@ -24,21 +24,6 @@
   []
   (doto (DirectionalLight.) (.set 0.8 0.8 0.8 -1 -0.8 -0.2)))
 
-(defn translate-camera
-  "Translate the camera on the x, y and z axis"
-  [screen x y z]
-  (doto screen
-    (perspective! :translate x y z)
-    (perspective! :update)))
-
-(defn rotate-camera
-  "Rotate the camera around the various axis"
-  [x y screen]
-  (doto screen
-    (perspective! :rotate x 0 1 0)
-    (perspective! :rotate y -1 0 0)
-    (perspective! :update)))
-
 (defn handle-mouse-move
   [screen]
   (let [camera (u/get-obj screen :camera)
@@ -84,23 +69,8 @@
         (perspective! screen :translate (.direction (u/get-obj screen :camera)))
         (perspective! screen :update))
 
-      (key-code :s)
-      (translate-camera screen 0 0 1)
-
-      (key-code :a)
-      (translate-camera screen -1 0 0)
-
-      (key-code :d)
-      (translate-camera screen 1 0 0)
-
-      (key-code :j)
-      (translate-camera screen 0 -1 0)
-
       (key-code :t)
       (input! :set-cursor-catched (not (input! :is-cursor-catched)))
-
-      (key-code :k)
-      (translate-camera screen 0 1 0)
 
       (key-code :r)
       (on-gl (set-screen! music-craft main-screen text-screen))
